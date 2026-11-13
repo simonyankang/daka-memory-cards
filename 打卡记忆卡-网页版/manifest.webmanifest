@@ -1,0 +1,17 @@
+{
+  "name": "打卡记忆卡",
+  "short_name": "记忆卡",
+  "description": "离线可用的打卡 + Anki 间隔重复记忆卡工具，纯本地存储，不上传数据。",
+  "lang": "zh-CN",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f5",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

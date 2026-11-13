@@ -1,0 +1,35 @@
+<wxs src="./today.wxs" module="util" />
+<view class="page">
+  <view class="err" wx:if="{{errMsg}}">{{errMsg}}</view>
+
+  <!-- 打卡统计 -->
+  <view class="card stats" wx:if="{{user}}">
+    <view class="row stat">
+      <text>连续打卡</text>
+      <text class="strong">{{user.streak}}</text><text class="muted">天</text>
+    </view>
+    <view class="row stat">
+      <text>累计打卡</text>
+      <text class="strong">{{user.checkinDays}}</text><text class="muted">天</text>
+    </view>
+  </view>
+  <view class="card muted" wx:else>{{loading ? '加载中…' : '还没有打卡记录，从今天开始吧'}}</view>
+
+  <!-- 今日打卡项 -->
+  <view class="card">
+    <view class="section-title">今日打卡项</view>
+    <view class="muted" wx:if="{{plans.length === 0}}">暂无打卡项</view>
+    <view
+      class="plan-item {{util.includes(donePlanIds, item._id) ? 'checked' : ''}}"
+      wx:for="{{plans}}" wx:key="_id"
+      data-id="{{item._id}}" bindtap="onTogglePlan"
+    >
+      <view class="tick">{{util.includes(donePlanIds, item._id) ? '✓' : '○'}}</view>
+      <text>{{item.title}}</text>
+    </view>
+  </view>
+
+  <button class="btn" bindtap="onCheckin">{{checkedToday ? '今日已打卡' : '打卡'}}</button>
+  <button class="btn" bindtap="onGoReview">开始复习（{{reviews.length}}）</button>
+  <button class="btn btn-ghost" bindtap="onGoImport">导入 Anki 卡片</button>
+</view>

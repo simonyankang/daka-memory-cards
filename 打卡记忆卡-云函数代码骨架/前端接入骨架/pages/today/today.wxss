@@ -1,0 +1,52 @@
+.stats .stat {
+  justify-content: flex-start;
+  padding: 8rpx 0;
+}
+
+.strong {
+  color: #3a7afe;
+  font-size: 40rpx;
+  font-weight: 600;
+  min-width: 72rpx;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.plan-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 22rpx 12rpx;
+  border-bottom: 1rpx solid #e8eaed;
+}
+
+.plan-item:last-child {
+  border-bottom: none;
+}
+
+.plan-item .tick {
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  border-radius: 50%;
+  border: 2rpx solid #c8ccd2;
+  color: #c8ccd2;
+  font-size: 28rpx;
+}
+
+.plan-item.checked .tick {
+  background: #3a7afe;
+  border-color: #3a7afe;
+  color: #fff;
+}
+
+.plan-item.checked text {
+  color: #8a9099;
+  text-decoration: line-through;
+}

@@ -1,0 +1,16 @@
+{
+  "description": "打卡记忆卡小程序前端工程（纯文字·一期，配套 4 个云函数后端）",
+  "appid": "touristappid",
+  "projectname": "打卡记忆卡",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "miniprogramRoot": "./",
+  "compileType": "miniprogram",
+  "libVersion": "latest",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false
+  }
+}

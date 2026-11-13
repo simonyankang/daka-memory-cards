@@ -1,0 +1,9 @@
+{
+  "name": "checkin",
+  "version": "1.0.0",
+  "description": "每日打卡：原子自增统计、断签判断、幂等流水",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

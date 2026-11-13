@@ -1,0 +1,9 @@
+{
+  "name": "submitReview",
+  "version": "1.0.0",
+  "description": "复习反馈：SM-2 批量更新卡片排程 + 原子累计复习数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

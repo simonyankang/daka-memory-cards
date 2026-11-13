@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="description" content="离线可用的打卡 + Anki 间隔重复记忆卡工具，纯本地存储，不上传数据。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZjc2NmUiLz4KICA8cmVjdCB4PSIyMCIgeT0iMTMiIHdpZHRoPSIzMiIgaGVpZ2h0PSI0MCIgcng9IjUiIGZpbGw9IiNlNmYyZjAiIG9wYWNpdHk9IjAuODUiLz4KICA8cmVjdCB4PSIxMyIgeT0iMTciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzOCIgcng9IjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxOSIgeT0iMjUiIHdpZHRoPSIxOCIgaGVpZ2h0PSIzIiByeD0iMS41IiBmaWxsPSIjMGY3NjZlIiBvcGFjaXR5PSIwLjU1Ii8+CiAgPHJlY3QgeD0iMTkiIHk9IjMyIiB3aWR0aD0iMTQiIGhlaWdodD0iMyIgcng9IjEuNSIgZmlsbD0iIzBmNzY2ZSIgb3BhY2l0eT0iMC41NSIvPgogIDxyZWN0IHg9IjE5IiB5PSIzOSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjMiIHJ4PSIxLjUiIGZpbGw9IiMwZjc2NmUiIG9wYWNpdHk9IjAuNTUiLz4KICA8Y2lyY2xlIGN4PSI0NiIgY3k9IjQ3IiByPSI5IiBmaWxsPSIjMGY3NjZlIi8+CiAgPHBhdGggZD0iTTQyIDQ3bDMgMyA1LTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K">
+<!-- manifest 由脚本在 load 后动态注入：发布平台的分享码 cookie 需先落盘，
+     否则浏览器解析期自动 fetch manifest 会早于 Set-Cookie 而 403，导致无法安装 PWA。 -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="打卡记忆卡">
+<title>打卡记忆卡</title>
+<style>
+  :root {
+    --bg: #f4f6f5;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --ink-2: #5b6572;
+    --ink-3: #8a94a3;
+    --line: #e5e9ec;
+    --brand: #0f766e;
+    --brand-soft: #e6f2f0;
+    --accent: #b45309;
+    --danger: #b91c1c;
+    --danger-soft: #fdeaea;
+    --ok: #15803d;
+    --radius: 14px;
+    --tap: 44px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding-bottom: calc(72px + var(--safe-b));
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 14px; }
+  header.top {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--brand); color: #fff;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px;
+  }
+  header.top .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  header.top h1 { font-size: 17px; font-weight: 650; margin: 0; letter-spacing: .5px; }
+  header.top .date { font-size: 12px; opacity: .85; }
+  main { padding-top: 12px; }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .card.tight { padding: 10px 14px; }
+  h2 { font-size: 15px; margin: 0 0 10px; font-weight: 650; }
+  h2 .mut { color: var(--ink-3); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  .muted { color: var(--ink-2); font-size: 13px; }
+  .tiny { color: var(--ink-3); font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row.between { justify-content: space-between; }
+  .row.wrap { flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--brand-soft); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .stat b { display: block; font-size: 22px; color: var(--brand); line-height: 1.2; }
+  .stat span { font-size: 11px; color: var(--ink-2); }
+
+  button, .btn {
+    font: inherit; cursor: pointer; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); border-radius: 10px;
+    min-height: var(--tap); padding: 0 14px;
+  }
+  button:active, .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn-danger { background: var(--danger-soft); border-color: #f3c5c5; color: var(--danger); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--brand); padding: 0 8px; }
+  .btn-sm { min-height: 34px; padding: 0 10px; font-size: 13px; border-radius: 8px; }
+  .btn-block { width: 100%; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .icon-btn { min-height: 34px; min-width: 34px; padding: 0 8px; font-size: 13px; color: var(--ink-2); }
+
+  input, textarea, select {
+    font: inherit; width: 100%; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; background: #fff; min-height: var(--tap);
+  }
+  textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--brand); }
+  label.fld { display: block; margin-bottom: 10px; }
+  label.fld > span { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+
+  .plan-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .plan-item:last-child { border-bottom: 0; }
+  .chk { width: 26px; height: 26px; min-height: 26px; flex: 0 0 26px; padding: 0; border-radius: 8px; display: grid; place-items: center; font-size: 16px; }
+  .chk.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .plan-title { flex: 1; min-width: 0; }
+  .plan-title.done { color: var(--ink-3); text-decoration: line-through; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); margin-left: 6px; }
+
+  .review-stage { text-align: center; padding: 16px 6px; }
+  .review-face { min-height: 150px; display: flex; align-items: center; justify-content: center; padding: 18px; border: 1px dashed var(--line); border-radius: 12px; background: #fbfcfc; white-space: pre-wrap; word-break: break-word; }
+  .review-face .q { font-size: 19px; font-weight: 600; }
+  .review-face .a { font-size: 17px; color: var(--ink-2); }
+  .rate-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .rate-grid button { padding: 0 4px; font-size: 13px; }
+  .rate-again { color: var(--danger); border-color: #f0c9c9; }
+  .rate-hard { color: var(--accent); border-color: #ecd6b6; }
+  .rate-good { color: var(--brand); border-color: #bfe0db; }
+  .rate-easy { color: var(--ok); border-color: #c4e4cd; }
+  .progress { height: 5px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 8px 0 14px; }
+  .progress > i { display: block; height: 100%; background: var(--brand); }
+
+  .card-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .card-item:last-child { border-bottom: 0; }
+  .card-item .front { font-weight: 600; word-break: break-word; }
+  .card-item .back { color: var(--ink-2); font-size: 14px; word-break: break-word; margin-top: 2px; }
+  .tag { font-size: 11px; color: var(--brand); background: var(--brand-soft); border-radius: 6px; padding: 1px 6px; margin-right: 4px; }
+  .empty { text-align: center; color: var(--ink-3); padding: 30px 10px; font-size: 14px; }
+
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: #fff; border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding-bottom: var(--safe-b);
+  }
+  .tabbar button {
+    border: 0; border-radius: 0; background: transparent; color: var(--ink-3);
+    min-height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px;
+  }
+  .tabbar button .ico { font-size: 19px; line-height: 1; }
+  .tabbar button.active { color: var(--brand); font-weight: 600; }
+  .tabbar button .dot { position: absolute; transform: translate(14px, -12px); background: var(--danger); color: #fff; border-radius: 99px; font-size: 10px; min-width: 16px; padding: 0 4px; }
+
+  .modal-mask { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,.45); display: none; align-items: flex-end; justify-content: center; }
+  .modal-mask.open { display: flex; }
+  .modal { background: #fff; width: 100%; max-width: 560px; border-radius: 16px 16px 0 0; padding: 18px 16px calc(18px + var(--safe-b)); max-height: 88vh; overflow: auto; }
+  .modal h3 { margin: 0 0 14px; font-size: 16px; }
+  .modal .acts { display: flex; gap: 10px; margin-top: 6px; }
+  .modal .acts button { flex: 1; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(84px + var(--safe-b)); transform: translateX(-50%); z-index: 60; background: #1f2937; color: #fff; padding: 9px 16px; border-radius: 99px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 88vw; text-align: center; }
+  .toast.show { opacity: 1; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .warn b { color: #9a3412; }
+  .kv { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .kv:last-child { border-bottom: 0; }
+  .kv span:first-child { color: var(--ink-2); }
+  .hr { height: 1px; background: var(--line); margin: 14px 0; }
+  .preview-line { font-size: 12px; color: var(--ink-2); padding: 3px 0; }
+  .scroll-x { overflow-x: auto; }
+  code { background: #f1f5f4; border-radius: 5px; padding: 1px 5px; font-size: 12px; }
+
+  /* PWA 安装提示条 */
+  .install-bar { display: none; align-items: center; gap: 10px; background: var(--brand); color: #fff; padding: 10px 14px; }
+  .install-bar.show { display: flex; }
+  .install-bar .txt { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; }
+  .install-bar .txt b { font-weight: 600; }
+  .install-bar button { background: #fff; color: var(--brand); border: 0; border-radius: 8px; min-height: 34px; padding: 0 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .install-bar .x { background: transparent; color: #fff; min-height: 34px; min-width: 30px; padding: 0 4px; font-size: 18px; opacity: .8; }
+  .ios-tip { background: var(--brand-soft); border: 1px solid #bfe0db; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #0b5c56; }
+  .ios-tip b { font-weight: 600; }
+
+  /* 评分按钮：更强的触控反馈与窄屏适配 */
+  .rate-grid button { transition: transform .08s, background .15s; user-select: none; }
+  .rate-grid button:active { transform: scale(.96); }
+  .rate-grid .k { display: block; font-size: 14px; font-weight: 600; }
+  .rate-grid .d { display: block; font-size: 10px; opacity: .75; margin-top: 1px; }
+  @media (max-width: 360px) {
+    .rate-grid { gap: 5px; }
+    .rate-grid button { font-size: 11px; padding: 0 2px; }
+  }
+
+  /* 统计卡数字更聚焦 */
+  .stat b { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>打卡 · 记忆卡</h1>
+  <span class="date" id="topDate"></span>
+</div></header>
+<div class="install-bar" id="installBar">
+  <div class="txt"><b>装到主屏幕</b>，像 App 一样打开，可离线用</div>
+  <button id="btnInstall">安装</button>
+  <button class="x" id="btnInstallX" aria-label="关闭">×</button>
+</div>
+
+<main class="wrap">
+  <!-- 今日 -->
+  <section class="tabpane active" id="pane-today">
+    <div class="card">
+      <div class="stat-grid" id="statGrid"></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2 style="margin:0">今日打卡</h2><button class="btn btn-sm btn-primary" id="btnAddPlan">＋ 添加</button></div>
+      <div id="planList" style="margin-top:6px"></div>
+      <p class="tiny" id="planEmpty" style="display:none">还没有打卡项，点右上角添加，比如「背 20 个单词」。</p>
+    </div>
+    <div class="card">
+      <div class="row between">
+        <h2 style="margin:0">待复习 <span class="mut" id="dueHint"></span></h2>
+        <button class="btn btn-sm btn-primary" id="btnGoReview">开始复习</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">新导入的卡片当天即进入待复习。按 SM-2 排程，答对拉长间隔，答错明天再见。</p>
+    </div>
+  </section>
+
+  <!-- 复习 -->
+  <section class="tabpane" id="pane-review">
+    <div class="card" id="reviewBox"></div>
+  </section>
+
+  <!-- 卡片 -->
+  <section class="tabpane" id="pane-cards">
+    <div class="card">
+      <div class="row between"><h2 style="margin:0">卡片库 <span class="mut" id="cardCount"></span></h2><button class="btn btn-sm btn-primary" id="btnAddCard">＋ 手工加卡</button></div>
+      <input id="cardSearch" placeholder="搜索正面 / 背面 / 标签" style="margin-top:10px">
+      <div id="cardList" style="margin-top:8px"></div>
+      <p class="empty" id="cardEmpty" style="display:none">没有卡片。用下方 Anki 导入，或点「手工加卡」。</p>
+    </div>
+    <div class="card">
+      <h2>从 Anki 导入 · CSV <span class="mut">纯文字</span></h2>
+      <div class="warn" style="margin-bottom:10px">从 Anki 导出时选 <b>CSV / 文本</b>，字段用逗号分隔。带图片/音频、Cloze 遮蔽、反向卡不支持。</div>
+      <label class="fld"><span>方式一：选择 .csv / .txt 文件</span>
+        <input type="file" id="csvFile" accept=".csv,.txt" style="padding:8px">
+      </label>
+      <label class="fld"><span>方式二：直接粘贴 CSV 内容</span>
+        <textarea id="csvText" placeholder="front,back,tags,guid&#10;中国的首都是哪座城市？,北京,地理&#10;1 + 1 = ?,2,数学"></textarea>
+      </label>
+      <div class="row wrap">
+        <button class="btn btn-sm" id="btnPreview">预览解析结果</button>
+        <button class="btn btn-sm btn-primary" id="btnImport" disabled>确认导入</button>
+      </div>
+      <div id="csvPreview" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>从 Anki 导入 · .apkg <span class="mut">二期 · 纯文字</span></h2>
+      <div class="warn" style="margin-bottom:10px">直接选 Anki 导出的 <b>.apkg / .colpkg</b> 整包，自动读文字。图片/音频引用会剥离、Cloze 填空卡会跳过（均计数提示）。首次解析要加载约 700 KB 的本地组件，稍等片刻；<b>需在线或已缓存后离线用</b>。读不了时改用上方 CSV 导入。</div>
+      <label class="fld"><span>选择 .apkg / .colpkg 文件</span>
+        <input type="file" id="apkgFile" accept=".apkg,.colpkg,.zip" style="padding:8px">
+      </label>
+      <div class="row wrap">
+        <button class="btn btn-sm" id="btnApkgPreview" disabled>预览解析结果</button>
+        <button class="btn btn-sm btn-primary" id="btnApkgImport" disabled>确认导入</button>
+      </div>
+      <div id="apkgPreview" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- 我的 -->
+  <section class="tabpane" id="pane-me">
+    <div class="warn" style="margin-bottom:12px">
+      <b>数据只存在这台设备的这个浏览器里。</b> 清浏览器缓存、换设备、用无痕/隐私模式，数据都会丢。请定期用下方「导出备份」把 JSON 存到网盘或发给自己。
+    </div>
+    <div class="warn" id="fileWarn" style="display:none;margin-bottom:12px;background:var(--danger-soft);border-color:#f3c5c5;color:#7f1d1d">
+      <b>当前是双击本地文件（file://）打开，数据可能存不住。</b> 浏览器对本地文件的存储支持不一致，换路径打开也可能读不到。要正式使用，请用本地服务器（<code>python3 -m http.server</code>）或发布成在线链接打开。
+    </div>
+    <div class="card" id="iosInstallCard" style="display:none">
+      <h2>装到主屏幕 <span class="mut">当 App 用</span></h2>
+      <div class="ios-tip">在 iPhone 上用 <b>Safari</b> 打开本页 → 点底部 <b>分享</b> 按钮（方框向上箭头）→ 选 <b>「添加到主屏幕」</b>。之后从桌面图标打开，全屏、可离线，和 App 一样。<br><span class="tiny">注意：要用 Safari 打开，微信/其他浏览器内的「在 Safari 中打开」才行。</span></div>
+    </div>
+    <div class="card">
+      <h2>数据概况</h2>
+      <div class="kv"><span>卡片</span><span id="meCards">0</span></div>
+      <div class="kv"><span>累计打卡天数</span><span id="meDays">0</span></div>
+      <div class="kv"><span>累计复习次数</span><span id="meReviews">0</span></div>
+      <div class="kv"><span>本地占用</span><span id="meSize">0 KB</span></div>
+    </div>
+    <div class="card">
+      <h2>备份与恢复</h2>
+      <div class="row wrap">
+        <button class="btn btn-sm btn-primary" id="btnExport">导出备份 (.json)</button>
+        <button class="btn btn-sm" id="btnImportBak">从备份恢复</button>
+        <input type="file" id="bakFile" accept=".json,application/json" style="display:none">
+      </div>
+      <p class="tiny" style="margin:8px 0 0">恢复会整体替换当前数据，操作前会让你确认。导出文件含全部卡片与复习进度。</p>
+      <div class="hr"></div>
+      <button class="btn btn-sm btn-danger" id="btnClear">清空全部数据</button>
+    </div>
+    <div class="card">
+      <h2>每日上限 <span class="mut">调复习节奏</span></h2>
+      <label class="fld"><span>每天最多新卡（导入当天进入待复习）</span><input type="number" id="setNew" min="0" max="500"></label>
+      <label class="fld"><span>每次复习取多少张</span><input type="number" id="setReview" min="1" max="500"></label>
+      <button class="btn btn-sm btn-primary" id="btnSaveSet">保存设置</button>
+    </div>
+    <p class="tiny" style="text-align:center;padding:6px 0 20px">纯本地离线运行 · 数据不上传 · 排程用 SuperMemo 官方 SM-2 口径</p>
+  </section>
+</main>
+
+<nav class="tabbar" id="tabbar">
+  <button class="active" data-tab="today"><span class="ico">▤</span>今日</button>
+  <button data-tab="review"><span class="ico">▦</span>复习<span class="dot" id="reviewDot" style="display:none">0</span></button>
+  <button data-tab="cards"><span class="ico">▧</span>卡片</button>
+  <button data-tab="me"><span class="ico">⚙</span>我的</button>
+</nav>
+
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="core.js"></script>
+<script src="vendor/jszip.min.js" onerror="window.__apkgDeps=(window.__apkgDeps||[]),window.__apkgDeps.push('JSZip')"></script>
+<script src="vendor/sql-wasm.js" onerror="window.__apkgDeps=(window.__apkgDeps||[]),window.__apkgDeps.push('sql.js')"></script>
+<script src="apkg.js"></script>
+<script>
+(function () {
+  'use strict'
+  var C = window.DakaCore
+  var KEY = 'daka-memocard-v1'
+  var TODAY = C.todayStr(new Date())
+  var state = load()
+  var queue = []        // 本次复习会话的 cardId 序列
+  var qIndex = 0
+  var revealed = false
+  var pendingImport = null  // 预览通过、待确认导入的解析结果
+  var cardFilter = ''
+
+  function $(s) { return document.querySelector(s) }
+  function el(id) { return document.getElementById(id) }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] }) }
+
+  function toast(msg) {
+    var t = el('toast'); t.textContent = msg; t.classList.add('show')
+    clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show') }, 2200)
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY)
+      if (!raw) return C.initState(TODAY)
+      var parsed = C.importState(raw)
+      return parsed.ok ? parsed.state : C.initState(TODAY)
+    } catch (e) { return C.initState(TODAY) }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); return true }
+    catch (e) { toast('保存失败：本地存储可能已满，请导出备份后清理'); return false }
+  }
+  function commit() { if (save()) renderAll() }
+
+  // ---------- 通用弹窗 ----------
+  function openModal(html) { el('modalBody').innerHTML = html; el('modalMask').classList.add('open') }
+  function closeModal() { el('modalMask').classList.remove('open'); el('modalBody').innerHTML = '' }
+  el('modalMask').addEventListener('click', function (e) { if (e.target === el('modalMask')) closeModal() })
+  var MODAL_BTN = '<div class="acts"><button class="btn" data-m="cancel">取消</button><button class="btn btn-primary" data-m="ok">确定</button></div>'
+
+  // ---------- 页签 ----------
+  el('tabbar').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab]'); if (!b) return
+    switchTab(b.getAttribute('data-tab'))
+  })
+  function switchTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('#tabbar button'), function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name) })
+    Array.prototype.forEach.call(document.querySelectorAll('.tabpane'), function (p) { p.classList.toggle('active', p.id === 'pane-' + name) })
+    if (name === 'review') startReview()
+    if (name === 'today' || name === 'me') renderAll()
+    window.scrollTo(0, 0)
+  }
+
+  // ---------- 渲染 ----------
+  function renderAll() {
+    el('topDate').textContent = TODAY + ' · ' + ['周日','周一','周二','周三','周四','周五','周六'][new Date().getDay()]
+    var sk = C.computeStreak(state, TODAY)
+    var due = C.dueCards(state, TODAY, state.settings.perDayReview)
+    el('statGrid').innerHTML =
+      stat(sk.streak, '连续天数') + stat(sk.checkinDays, '累计打卡') + stat(due.length, '待复习')
+    el('dueHint').textContent = due.length ? '（' + due.length + ' 张）' : '（已清空）'
+    el('btnGoReview').disabled = due.length === 0
+    var dot = el('reviewDot'); dot.textContent = due.length; dot.style.display = due.length ? 'inline-block' : 'none'
+
+    renderPlans()
+    renderCards()
+    renderMe()
+  }
+  function stat(n, label) { return '<div class="stat"><b>' + n + '</b><span>' + label + '</span></div>' }
+
+  function renderPlans() {
+    var flow = state.checkins[TODAY] || { planIds: [] }
+    var done = flow.planIds || []
+    var box = el('planList')
+    if (state.plans.length === 0) { box.innerHTML = ''; el('planEmpty').style.display = 'block'; return }
+    el('planEmpty').style.display = 'none'
+    box.innerHTML = state.plans.slice().sort(function (a, b) { return a.sortOrder - b.sortOrder }).map(function (p) {
+      var on = done.indexOf(p.id) >= 0
+      var link = ''
+      if (p.linkedDeckId) {
+        var n = C.dueCards(state, TODAY, 9999).filter(function (c) { return c.deckId === p.linkedDeckId }).length
+        link = '<span class="badge">卡组 ' + esc(p.linkedDeckId) + ' · 待复习 ' + n + '</span>'
+      }
+      return '<div class="plan-item">' +
+        '<button class="chk ' + (on ? 'on' : '') + '" data-act="toggle" data-id="' + p.id + '">' + (on ? '✓' : '') + '</button>' +
+        '<div class="plan-title ' + (on ? 'done' : '') + '">' + esc(p.title) + link + '</div>' +
+        '<button class="icon-btn" data-act="editplan" data-id="' + p.id + '">编辑</button>' +
+        '<button class="icon-btn" data-act="delplan" data-id="' + p.id + '">删</button>' +
+      '</div>'
+    }).join('')
+  }
+
+  el('planList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (!b) return
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id')
+    var flow = state.checkins[TODAY] || { planIds: [], reviewedCount: 0 }
+    var done = (flow.planIds || []).slice()
+    if (act === 'toggle') {
+      var i = done.indexOf(id)
+      if (i >= 0) done.splice(i, 1); else done.push(id)
+      C.setDayPlanIds(state, TODAY, done); commit()
+    } else if (act === 'editplan') {
+      var p = state.plans.find(function (x) { return x.id === id }); if (!p) return
+      planModal(p)
+    } else if (act === 'delplan') {
+      confirmModal('删除打卡项？', '历史记录会保留，只是不再显示这一项。', function () { C.removePlan(state, id); commit(); toast('已删除') })
+    }
+  })
+
+  el('btnAddPlan').addEventListener('click', function () { planModal(null) })
+  function planModal(p) {
+    var isEdit = !!p
+    openModal('<h3>' + (isEdit ? '编辑打卡项' : '添加打卡项') + '</h3>' +
+      '<label class="fld"><span>名称</span><input id="f_title" value="' + esc(p ? p.title : '') + '" placeholder="如：背 20 个单词"></label>' +
+      '<label class="fld"><span>关联卡组（可选，填 Anki 的 deckId）</span><input id="f_deck" value="' + esc(p ? p.linkedDeckId : '') + '" placeholder="留空则不关联"></label>' +
+      '<p class="tiny" style="margin:-4px 0 10px">关联后在今日页能直接看到该卡组待复习张数；勾选仍由你手动确认。</p>' +
+      MODAL_BTN)
+    el('modalBody').querySelector('[data-m="cancel"]').onclick = closeModal
+    el('modalBody').querySelector('[data-m="ok"]').onclick = function () {
+      var title = el('f_title').value, deck = el('f_deck').value.trim()
+      var r = isEdit ? C.updatePlan(state, p.id, { title: title, linkedDeckId: deck }) : C.addPlan(state, title, deck)
+      if (!r.ok) { toast(r.error); return }
+      closeModal(); commit(); toast(isEdit ? '已保存' : '已添加')
+    }
+    el('f_title').focus()
+  }
+
+  function confirmModal(title, body, onOk) {
+    openModal('<h3>' + esc(title) + '</h3><p class="muted">' + esc(body) + '</p>' + MODAL_BTN)
+    el('modalBody').querySelector('[data-m="cancel"]').onclick = closeModal
+    el('modalBody').querySelector('[data-m="ok"]').onclick = function () { closeModal(); onOk() }
+  }
+
+  // ---------- 复习 ----------
+  el('btnGoReview').addEventListener('click', function () { switchTab('review') })
+  function startReview() {
+    var due = C.dueCards(state, TODAY, state.settings.perDayReview)
+    // 只保留仍在队列里、且仍未到期的卡（本会话已评分的会移出）。
+    queue = due.map(function (c) { return c.id })
+    qIndex = 0; revealed = false
+    renderReview()
+  }
+  function renderReview() {
+    var box = el('reviewBox')
+    if (queue.length === 0) {
+      box.innerHTML = '<div class="empty">今日待复习已清空 ✓<br><span class="tiny">明天按排程继续，也可到「卡片」页导入新卡。</span></div>'
+      return
+    }
+    if (qIndex >= queue.length) {
+      box.innerHTML = '<div class="empty">本轮复习完成 ✓<br><span class="tiny">共 ' + queue.length + ' 张，进度已保存。</span></div>'
+      return
+    }
+    var c = state.cards.find(function (x) { return x.id === queue[qIndex] })
+    if (!c) { qIndex++; renderReview(); return }
+    var rv = state.reviews[c.id]
+    var meta = '第 ' + (qIndex + 1) + ' / ' + queue.length + ' 张 · 已复习 ' + (rv.repetitions || 0) + ' 次 · 间隔 ' + (rv.interval || 0) + ' 天'
+    box.innerHTML =
+      '<div class="row between"><span class="tiny">' + meta + '</span><span class="tag">' + esc(c.deckId || c.source) + '</span></div>' +
+      '<div class="progress"><i style="width:' + Math.round(qIndex / queue.length * 100) + '%"></i></div>' +
+      '<div class="review-stage">' +
+        (revealed
+          ? '<div class="review-face"><div class="a">' + esc(c.back || '（无背面）') + '</div></div>'
+          : '<div class="review-face"><div class="q">' + esc(c.front) + '</div></div>') +
+      '</div>' +
+      (revealed
+        ? rateButtons()
+        : '<button class="btn btn-primary btn-block" id="btnReveal">显示答案</button>')
+    if (!revealed) el('btnReveal').onclick = function () { revealed = true; renderReview() }
+    else bindRate()
+  }
+  function rateButtons() {
+    // 用真实 SM-2 预览四档各自的下次间隔天数，复用 core，不另造算法。
+    var id = queue[qIndex]
+    var review = state.reviews[id] || C.newReview(TODAY)
+    function daysFor(rating) {
+      var q = C.RATING_Q[rating]
+      var next = C.sm2Update(q, review)
+      return next.interval
+    }
+    function btn(cls, rating, label, desc) {
+      var d = daysFor(rating)
+      var hint = rating === 'again' ? '明天' : (d >= 30 ? Math.round(d / 30) + ' 个月后' : d + ' 天后')
+      return '<button class="' + cls + '" data-r="' + rating + '">' +
+        '<span class="k">' + label + '</span><span class="d">' + desc + ' · ' + hint + '</span></button>'
+    }
+    return '<div class="row between" style="margin-bottom:8px"><span class="tiny">刚才想起来的顺利程度？（附下次复习时间）</span></div>' +
+      '<div class="rate-grid">' +
+        btn('rate-again', 'again', '忘了', 'Again') +
+        btn('rate-hard', 'hard', '吃力', 'Hard') +
+        btn('rate-good', 'good', '想起了', 'Good') +
+        btn('rate-easy', 'easy', '很轻松', 'Easy') +
+      '</div>'
+  }
+  function bindRate() {
+    el('reviewBox').querySelectorAll('button[data-r]').forEach(function (b) {
+      b.onclick = function () {
+        var id = queue[qIndex]
+        var r = C.rateCards(state, [{ cardId: id, rating: b.getAttribute('data-r') }], TODAY)
+        if (!r.ok) { toast(r.error); return }
+        save()
+        qIndex++; revealed = false
+        renderReview(); renderAll()
+      }
+    })
+  }
+
+  // ---------- 卡片库 ----------
+  el('cardSearch').addEventListener('input', function (e) { cardFilter = e.target.value.trim().toLowerCase(); renderCards() })
+  function renderCards() {
+    el('cardCount').textContent = '（共 ' + state.cards.length + ' 张）'
+    var list = state.cards.filter(function (c) {
+      if (!cardFilter) return true
+      return (c.front + ' ' + c.back + ' ' + (c.tags || []).join(' ') + ' ' + (c.deckId || '')).toLowerCase().indexOf(cardFilter) >= 0
+    })
+    var box = el('cardList')
+    if (list.length === 0) { box.innerHTML = ''; el('cardEmpty').style.display = 'block'; return }
+    el('cardEmpty').style.display = 'none'
+    box.innerHTML = list.slice(0, 200).map(function (c) {
+      var rv = state.reviews[c.id] || {}
+      var tags = (c.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>' }).join('')
+      return '<div class="card-item">' +
+        '<div class="row between"><div class="grow"><div class="front">' + esc(c.front) + '</div><div class="back">' + esc(c.back) + '</div></div></div>' +
+        '<div class="row between" style="margin-top:6px"><div>' + tags + '<span class="tiny">' + esc(c.deckId || c.source) + ' · 到期 ' + esc(rv.dueDate || '-') + ' · 间隔 ' + (rv.interval || 0) + 'd</span></div>' +
+        '<div><button class="icon-btn" data-act="editcard" data-id="' + c.id + '">编辑</button><button class="icon-btn" data-act="delcard" data-id="' + c.id + '">删</button></div></div>' +
+      '</div>'
+    }).join('') + (list.length > 200 ? '<p class="tiny" style="text-align:center;padding-top:8px">仅显示前 200 张，用上方搜索定位其它。</p>' : '')
+  }
+  el('cardList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (!b) return
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id')
+    var c = state.cards.find(function (x) { return x.id === id }); if (!c) return
+    if (act === 'editcard') cardModal(c)
+    else if (act === 'delcard') confirmModal('删除这张卡片？', '复习进度会一起删除，不可恢复。', function () { C.removeCard(state, id); commit(); toast('已删除') })
+  })
+  el('btnAddCard').addEventListener('click', function () { cardModal(null) })
+  function cardModal(c) {
+    var isEdit = !!c
+    openModal('<h3>' + (isEdit ? '编辑卡片' : '手工加卡') + '</h3>' +
+      '<label class="fld"><span>正面（问题）</span><textarea id="f_front" style="min-height:70px">' + esc(c ? c.front : '') + '</textarea></label>' +
+      '<label class="fld"><span>背面（答案）</span><textarea id="f_back" style="min-height:70px">' + esc(c ? c.back : '') + '</textarea></label>' +
+      '<label class="fld"><span>标签（空格分隔，可选）</span><input id="f_tags" value="' + esc(c ? (c.tags || []).join(' ') : '') + '"></label>' +
+      '<label class="fld"><span>卡组 deckId（可选，用于打卡项关联）</span><input id="f_deck" value="' + esc(c ? c.deckId : '') + '"></label>' +
+      MODAL_BTN)
+    el('modalBody').querySelector('[data-m="cancel"]').onclick = closeModal
+    el('modalBody').querySelector('[data-m="ok"]').onclick = function () {
+      var d = { front: el('f_front').value, back: el('f_back').value, tags: el('f_tags').value, deckId: el('f_deck').value.trim() }
+      var r = isEdit ? C.updateCard(state, c.id, d) : C.addCard(state, d, TODAY)
+      if (!r.ok) { toast(r.error); return }
+      closeModal(); commit(); toast(isEdit ? '已保存' : '已添加，今天就能复习')
+    }
+    el('f_front').focus()
+  }
+
+  // ---------- Anki CSV 导入 ----------
+  el('csvFile').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return
+    var reader = new FileReader()
+    reader.onload = function () { el('csvText').value = reader.result; pendingImport = null; el('btnImport').disabled = true; el('csvPreview').innerHTML = '<p class="tiny">文件已读入，点「预览解析结果」确认。</p>' }
+    reader.readAsText(f, 'utf-8')
+  })
+  el('btnPreview').addEventListener('click', function () {
+    var text = el('csvText').value
+    var parsed = C.parseCsv(text)
+    var mapped = C.mapRows(parsed)
+    if (mapped.errors.length) {
+      pendingImport = null; el('btnImport').disabled = true
+      el('csvPreview').innerHTML = '<div class="warn">解析失败：' + mapped.errors.slice(0, 5).map(esc).join('；') + '</div>'
+      return
+    }
+    var dedup = C.dedupeInInput(mapped.rows)
+    var existing = new Set(state.cards.map(function (c) { return c.ankiGuid }))
+    var fresh = dedup.rows.filter(function (r) { return !existing.has(r.ankiGuid) })
+    var over = fresh.length > C.MAX_ROWS
+    pendingImport = fresh.length && !over ? text : null
+    el('btnImport').disabled = !pendingImport
+    var sample = fresh.slice(0, 3).map(function (r) { return '<div class="preview-line">· ' + esc(r.front) + ' → ' + esc(r.back) + '</div>' }).join('')
+    el('csvPreview').innerHTML =
+      '<div class="card tight" style="background:#fbfcfc;margin:0">' +
+        '<div class="preview-line">解析有效行：<b>' + mapped.rows.length + '</b></div>' +
+        '<div class="preview-line">文件内重复：<b>' + dedup.dupCount + '</b>（按 guid 或正文去重）</div>' +
+        '<div class="preview-line">已存在将跳过：<b>' + (dedup.rows.length - fresh.length) + '</b>（重导入不覆盖进度）</div>' +
+        '<div class="preview-line">将新增：<b style="color:var(--brand)">' + fresh.length + '</b> 张' + (over ? ' <span style="color:var(--danger)">超过单次上限 ' + C.MAX_ROWS + '</span>' : '') + '</div>' +
+        (sample ? '<div class="hr"></div><span class="tiny">预览：</span>' + sample : '') +
+      '</div>'
+    if (over) toast('单次最多导入 ' + C.MAX_ROWS + ' 张，请拆分文件')
+  })
+  el('btnImport').addEventListener('click', function () {
+    if (!pendingImport) return
+    var r = C.importCards(state, pendingImport, TODAY)
+    if (!r.ok) { toast(r.error); return }
+    commit()
+    el('csvText').value = ''; el('csvFile').value = ''; pendingImport = null
+    el('btnImport').disabled = true
+    el('csvPreview').innerHTML = '<div class="preview-line" style="color:var(--ok)">导入完成：新增 ' + r.inserted + ' 张，文件内重复 ' + r.dupInFile + ' 张，已存在跳过 ' + r.dupInDb + ' 张。</div>'
+    toast('已导入 ' + r.inserted + ' 张')
+  })
+
+  // ---------- Anki .apkg 导入（二期·纯文字） ----------
+  // 依赖 JSZip + sql.js，均为本地 vendor 文件，首次解析时初始化一次 wasm。
+  var A = window.DakaApkg
+  var pendingApkgRows = null
+  var apkgBuf = null
+  var sqlInitPromise = null
+
+  function apkgDepsOk() {
+    var missing = (window.__apkgDeps || []).slice()
+    if (!window.JSZip && missing.indexOf('JSZip') < 0) missing.push('JSZip')
+    if (!window.initSqlJs && missing.indexOf('sql.js') < 0) missing.push('sql.js')
+    if (!A || !A.parseApkg) missing.push('apkg.js')
+    return missing
+  }
+  function initSqlOnce() {
+    if (sqlInitPromise) return sqlInitPromise
+    sqlInitPromise = window.initSqlJs({
+      locateFile: function (file) { return 'vendor/' + file } // wasm 从本地目录取，零外部请求
+    })
+    return sqlInitPromise
+  }
+  el('apkgFile').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]
+    pendingApkgRows = null; apkgBuf = null
+    el('btnApkgPreview').disabled = true; el('btnApkgImport').disabled = true
+    el('apkgPreview').innerHTML = ''
+    if (!f) return
+    var missing = apkgDepsOk()
+    if (missing.length) {
+      el('apkgPreview').innerHTML = '<div class="warn">解析组件未能加载（' + missing.map(esc).join('、') + '）。请确认 <code>vendor/</code> 目录与 index.html 在同一文件夹、且用 http(s) 或本地服务器打开（不要用 file:// 双击）。CSV 导入不受影响。</div>'
+      return
+    }
+    var reader = new FileReader()
+    el('apkgPreview').innerHTML = '<p class="tiny">正在读取 ' + esc(f.name) + ' …</p>'
+    reader.onload = function () {
+      apkgBuf = reader.result
+      el('btnApkgPreview').disabled = false
+      el('apkgPreview').innerHTML = '<p class="tiny">文件已读入（' + (f.size / 1024).toFixed(0) + ' KB），点「预览解析结果」。</p>'
+    }
+    reader.onerror = function () { el('apkgPreview').innerHTML = '<div class="warn">文件读取失败，请重试。</div>' }
+    reader.readAsArrayBuffer(f)
+  })
+  el('btnApkgPreview').addEventListener('click', async function () {
+    if (!apkgBuf) return
+    var btn = el('btnApkgPreview')
+    btn.disabled = true; el('btnApkgImport').disabled = true
+    el('apkgPreview').innerHTML = '<p class="tiny">正在解析 .apkg（首次需加载 wasm，约 700 KB）…</p>'
+    try {
+      var SQL = await initSqlOnce()
+      var r = await A.parseApkg(apkgBuf, { JSZip: window.JSZip, initSqlJs: function () { return Promise.resolve(SQL) }, DakaCore: C })
+      if (!r.ok) {
+        pendingApkgRows = null
+        el('apkgPreview').innerHTML = '<div class="warn">解析失败：' + r.errors.map(esc).join('；') + '</div>'
+        return
+      }
+      var dedup = C.dedupeInInput(r.rows)
+      var existing = new Set(state.cards.map(function (c) { return c.ankiGuid }))
+      var fresh = dedup.rows.filter(function (x) { return !existing.has(x.ankiGuid) })
+      var over = fresh.length > C.MAX_ROWS
+      pendingApkgRows = fresh.length && !over ? fresh : null
+      el('btnApkgImport').disabled = !pendingApkgRows
+      var sample = fresh.slice(0, 3).map(function (x) { return '<div class="preview-line">· ' + esc(x.front) + ' → ' + esc(x.back) + '</div>' }).join('')
+      var warns = (r.meta.warnings || []).map(function (w) { return '<div class="preview-line" style="color:var(--accent)">· ' + esc(w) + '</div>' }).join('')
+      el('apkgPreview').innerHTML =
+        '<div class="card tight" style="background:#fbfcfc;margin:0">' +
+          '<div class="preview-line">数据库：<b>' + esc(r.meta.dbEntry) + '</b>　notes 总数：<b>' + r.meta.noteCount + '</b></div>' +
+          '<div class="preview-line">解析有效行：<b>' + r.rows.length + '</b>　文件内重复：<b>' + dedup.dupCount + '</b>　已存在跳过：<b>' + (dedup.rows.length - fresh.length) + '</b></div>' +
+          '<div class="preview-line">将新增：<b style="color:var(--brand)">' + fresh.length + '</b> 张' + (over ? ' <span style="color:var(--danger)">超过单次上限 ' + C.MAX_ROWS + '</span>' : '') + '</div>' +
+          warns +
+          (sample ? '<div class="hr"></div><span class="tiny">预览：</span>' + sample : '') +
+        '</div>'
+      if (over) toast('单次最多导入 ' + C.MAX_ROWS + ' 张，请拆分牌组')
+    } catch (err) {
+      pendingApkgRows = null
+      el('apkgPreview').innerHTML = '<div class="warn">解析出错：' + esc(err && err.message ? err.message : err) + '</div>'
+    } finally {
+      btn.disabled = false
+    }
+  })
+  el('btnApkgImport').addEventListener('click', function () {
+    if (!pendingApkgRows) return
+    var r = C.importRows(state, pendingApkgRows, TODAY)
+    if (!r.ok) { toast(r.error); return }
+    commit()
+    el('apkgFile').value = ''; apkgBuf = null; pendingApkgRows = null
+    el('btnApkgPreview').disabled = true; el('btnApkgImport').disabled = true
+    el('apkgPreview').innerHTML = '<div class="preview-line" style="color:var(--ok)">导入完成：新增 ' + r.inserted + ' 张，文件内重复 ' + r.dupInFile + ' 张，已存在跳过 ' + r.dupInDb + ' 张。</div>'
+    toast('已导入 ' + r.inserted + ' 张')
+  })
+
+  // ---------- 我的：备份 / 恢复 / 清空 / 设置 ----------
+  function renderMe() {
+    var sk = C.computeStreak(state, TODAY)
+    el('meCards').textContent = state.cards.length + ' 张'
+    el('meDays').textContent = sk.checkinDays + ' 天'
+    el('meReviews').textContent = (state.stats.totalReviews || 0) + ' 次'
+    var bytes = 0
+    try { bytes = new Blob([JSON.stringify(state)]).size } catch (e) { bytes = JSON.stringify(state).length }
+    el('meSize').textContent = bytes < 1024 ? bytes + ' B' : (bytes / 1024).toFixed(1) + ' KB'
+    el('setNew').value = state.settings.perDayNew
+    el('setReview').value = state.settings.perDayReview
+  }
+  el('btnExport').addEventListener('click', function () {
+    var data = JSON.stringify(state, null, 2)
+    var blob = new Blob([data], { type: 'application/json' })
+    var a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = '打卡记忆卡-备份-' + TODAY + '.json'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+    toast('备份已下载，请存到安全的地方')
+  })
+  el('btnImportBak').addEventListener('click', function () { el('bakFile').click() })
+  el('bakFile').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return
+    var reader = new FileReader()
+    reader.onload = function () {
+      var r = C.importState(reader.result)
+      if (!r.ok) { toast('备份文件无效：' + r.error); return }
+      confirmModal('从备份恢复？', '会用备份里的数据整体替换当前全部内容（' + r.state.cards.length + ' 张卡），当前数据将丢失。', function () {
+        state = r.state; commit(); toast('恢复完成，共 ' + state.cards.length + ' 张卡')
+      })
+    }
+    reader.readAsText(f, 'utf-8')
+    e.target.value = ''
+  })
+  el('btnClear').addEventListener('click', function () {
+    openModal('<h3>清空全部数据</h3><p class="muted">这会删除所有卡片、打卡记录和复习进度，<b>不可恢复</b>。请先导出备份。</p>' +
+      '<label class="fld"><span>请输入「清空」两字确认</span><input id="f_clear" placeholder="清空"></label>' + MODAL_BTN)
+    el('modalBody').querySelector('[data-m="cancel"]').onclick = closeModal
+    el('modalBody').querySelector('[data-m="ok"]').onclick = function () {
+      if (el('f_clear').value.trim() !== '清空') { toast('输入不匹配，未清空'); return }
+      state = C.initState(TODAY); closeModal(); commit(); toast('已清空')
+    }
+    el('f_clear').focus()
+  })
+  el('btnSaveSet').addEventListener('click', function () {
+    var n = Math.max(0, parseInt(el('setNew').value, 10) || 0)
+    var rv = Math.max(1, parseInt(el('setReview').value, 10) || 100)
+    state.settings.perDayNew = n
+    state.settings.perDayReview = Math.min(rv, 500)
+    commit(); toast('设置已保存')
+  })
+
+  // 双击本地文件打开时，浏览器对 localStorage 的支持未定义，给出醒目提示。
+  try { if (location.protocol === 'file:') el('fileWarn').style.display = 'block' } catch (e) {}
+
+  renderAll()
+
+  // 注册 Service Worker 做离线缓存 + 注入 PWA manifest。仅 http(s) 下可用。
+  // manifest 用 data URI 内联，零 HTTP 请求：发布平台靠首页响应下发的分享码 cookie
+  // 放行子资源，manifest 若走网络请求会与 cookie 落盘产生竞态、偶发 403 导致装不上。
+  // data URI 不依赖 cookie；图标用绝对 https 地址（安装交互时 cookie 已就位）。
+  if (location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      var icon = function (name) { return new URL(name, location.href).href }
+      var manifest = {
+        name: '打卡记忆卡', short_name: '记忆卡',
+        description: '离线可用的打卡 + Anki 间隔重复记忆卡工具，纯本地存储，不上传数据。',
+        lang: 'zh-CN', start_url: new URL('index.html', location.href).href,
+        scope: new URL('.', location.href).href, display: 'standalone', orientation: 'portrait',
+        background_color: '#f4f6f5', theme_color: '#0f766e',
+        icons: [
+          { src: icon('icon-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: icon('icon-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: icon('icon-512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ]
+      }
+      var json = JSON.stringify(manifest)
+      var b64 = typeof btoa === 'function'
+        ? btoa(unescape(encodeURIComponent(json)))
+        : ''
+      var ml = document.createElement('link')
+      ml.rel = 'manifest'
+      ml.href = 'data:application/manifest+json;base64,' + b64
+      document.head.appendChild(ml)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function () { /* 注册失败不影响主功能 */ })
+      }
+    })
+  }
+
+  // ---------- 安装到主屏幕提示 ----------
+  // Android/Chrome：捕获 beforeinstallprompt，点「安装」时触发系统安装弹窗。
+  // iOS Safari：不支持该事件，改为在「我的」页显示常驻图文引导。
+  var deferredPrompt = null
+  var installBar = el('installBar')
+  function dismissedThisSession() {
+    try { return sessionStorage.getItem('daka-install-dismissed') === '1' } catch (e) { return false }
+  }
+  function markDismissed() {
+    try { sessionStorage.setItem('daka-install-dismissed', '1') } catch (e) {}
+  }
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault()
+    deferredPrompt = e
+    if (!dismissedThisSession()) installBar.classList.add('show')
+  })
+  window.addEventListener('appinstalled', function () {
+    installBar.classList.remove('show'); deferredPrompt = null
+    toast('已装到主屏幕，可从桌面图标打开')
+  })
+  el('btnInstall').addEventListener('click', function () {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    deferredPrompt.userChoice.then(function () {
+      deferredPrompt = null; installBar.classList.remove('show'); markDismissed()
+    })
+  })
+  el('btnInstallX').addEventListener('click', function () {
+    installBar.classList.remove('show'); markDismissed()
+  })
+  // 已经在主屏独立模式运行时，不必再提示。
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+  if (!standalone) {
+    var ua = navigator.userAgent
+    var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    var isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|Chrome|Android/.test(ua)
+    if (isIOS && isSafari && location.protocol !== 'file:') el('iosInstallCard').style.display = 'block'
+  }
+})()
+</script>
+</body>
+</html>

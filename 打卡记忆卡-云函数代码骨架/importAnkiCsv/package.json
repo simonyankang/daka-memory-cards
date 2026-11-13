@@ -1,0 +1,9 @@
+{
+  "name": "importAnkiCsv",
+  "version": "1.0.0",
+  "description": "一期纯文字 CSV 批量导入记忆卡片（零第三方依赖）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

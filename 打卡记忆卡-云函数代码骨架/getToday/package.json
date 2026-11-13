@@ -1,0 +1,9 @@
+{
+  "name": "getToday",
+  "version": "1.0.0",
+  "description": "聚合当日打卡计划、待复习排程与卡片正文，一次返回",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

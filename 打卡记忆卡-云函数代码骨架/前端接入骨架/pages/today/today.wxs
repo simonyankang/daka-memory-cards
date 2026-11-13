@@ -1,0 +1,11 @@
+// today.wxs —— 视图层辅助：判断某打卡项是否已勾选。
+// 用 WXS 而非在 WXML 里调 Array.indexOf，规避部分老基础库在模板表达式里调用实例方法的兼容问题。
+function includes(list, id) {
+  if (!list) return false
+  for (var i = 0; i < list.length; i++) {
+    if (list[i] === id) return true
+  }
+  return false
+}
+
+module.exports = { includes: includes }

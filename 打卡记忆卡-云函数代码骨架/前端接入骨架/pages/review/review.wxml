@@ -1,0 +1,41 @@
+<view class="page">
+  <!-- 复习进行中 -->
+  <block wx:if="{{!done}}">
+    <view class="progress muted" wx:if="{{queue.length}}">{{index + 1}} / {{queue.length}}</view>
+
+    <block wx:if="{{index < queue.length}}">
+      <view class="card flashcard" bindtap="onShowAnswer">
+        <view class="front">{{queue[index].card.front}}</view>
+        <block wx:if="{{showBack}}">
+          <view class="divider"></view>
+          <view class="back">{{queue[index].card.back}}</view>
+        </block>
+        <view class="hint muted" wx:else>点击查看答案</view>
+      </view>
+
+      <view class="buttons" wx:if="{{showBack}}">
+        <button
+          class="btn grade-{{item.key}}"
+          wx:for="{{buttons}}" wx:key="key"
+          data-rating="{{item.key}}" bindtap="onRate"
+        >{{item.label}}</button>
+      </view>
+      <button class="btn" wx:else bindtap="onShowAnswer">显示答案</button>
+    </block>
+
+    <view class="card muted" wx:else>{{submitting ? '正在提交…' : '加载中…'}}</view>
+  </block>
+
+  <!-- 本轮结束 / 提交结果 -->
+  <view wx:else>
+    <view class="card" wx:if="{{submitting}}">正在提交复习结果…</view>
+    <view class="card summary" wx:if="{{summary}}">
+      <view class="section-title">本轮复习完成</view>
+      <view class="summary-row"><text class="muted">提交</text><text class="strong">{{summary['提交']}}</text></view>
+      <view class="summary-row"><text class="muted">更新排程</text><text class="strong">{{summary['更新']}}</text></view>
+      <view class="summary-row"><text class="muted">无排程跳过</text><text class="strong">{{summary['无排程跳过']}}</text></view>
+      <view class="summary-row"><text class="muted">失败</text><text class="strong">{{summary['失败']}}</text></view>
+    </view>
+    <view class="err" wx:if="{{errMsg}}">{{errMsg}}</view>
+  </view>
+</view>

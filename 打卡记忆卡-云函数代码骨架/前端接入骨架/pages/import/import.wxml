@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="tabs">
+    <button class="btn {{mode === 'file' ? '' : 'btn-ghost'}}" data-mode="file" bindtap="onMode">选文件</button>
+    <button class="btn {{mode === 'paste' ? '' : 'btn-ghost'}}" data-mode="paste" bindtap="onMode">粘贴</button>
+  </view>
+
+  <block wx:if="{{mode === 'file'}}">
+    <button class="btn" bindtap="onChooseFile" disabled="{{busy}}">选择 CSV 文件</button>
+    <view class="card muted" wx:if="{{fileName}}">已选：{{fileName}}</view>
+  </block>
+  <block wx:else>
+    <view class="card">
+      <textarea
+        class="paste-area"
+        placeholder="首行：front,back（支持引号 / 逗号 / 换行转义，详见 CSV导入格式规范.md）"
+        bindinput="onPaste" value="{{pasted}}"
+      />
+    </view>
+    <button class="btn" bindtap="onImportPaste" disabled="{{busy}}">导入</button>
+  </block>
+
+  <view class="err" wx:if="{{errMsg}}">{{errMsg}}</view>
+
+  <view class="card result" wx:if="{{result}}">
+    <view class="section-title">导入结果</view>
+    <view class="summary-row"><text class="muted">成功导入</text><text class="strong">{{result['导入']}}</text></view>
+    <view class="summary-row"><text class="muted">文件内去重</text><text class="strong">{{result['文件内去重']}}</text></view>
+    <view class="summary-row"><text class="muted">库中已存在</text><text class="strong">{{result['库中已存在']}}</text></view>
+    <view class="summary-row"><text class="muted">失败</text><text class="strong">{{result['失败']}}</text></view>
+    <view class="summary-row"><text class="muted">预估写调用</text><text class="strong">{{result['预估写调用']}}</text></view>
+  </view>
+
+  <view class="card tip muted">
+    一期仅支持纯文字卡片；列格式与转义规则见《CSV导入格式规范.md》。
+  </view>
+  <button class="btn btn-ghost" bindtap="onGoToday">返回今日</button>
+</view>
